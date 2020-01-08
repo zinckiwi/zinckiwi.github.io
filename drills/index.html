@@ -32,10 +32,10 @@
   <div id='app'>
     <h1>Drills</h1>
     <div class='operators'>
-      <span v-bind:class='{active: this.operator == "×"}' @click='setOperator("×")'>×</span>
-      <span v-bind:class='{active: this.operator == "÷"}' @click='setOperator("÷")' style='font-size: 30px;'>÷</span>
-      <span v-bind:class='{active: this.operator == "+"}' @click='setOperator("+")'>+</span>
-      <span v-bind:class='{active: this.operator == "-"}' @click='setOperator("-")'>-</span>
+      <span v-bind:class='{active: operator == "×"}' @click='setOperator("×")'>×</span>
+      <span v-bind:class='{active: operator == "÷"}' @click='setOperator("÷")' style='font-size: 30px;'>÷</span>
+      <span v-bind:class='{active: operator == "+"}' @click='setOperator("+")'>+</span>
+      <span v-bind:class='{active: operator == "-"}' @click='setOperator("-")'>-</span>
     </div>
     <div class='question'>{{a}} <span class='question-operator'>{{ operator }}</span> {{b}}</div>
     <input type='text' autofocus maxlength='3' inputmode='numeric' pattern='[0-9]*' ref='answer' v-model.trim='answer' @input='check' v-bind:disabled='thinking' v-bind:class='{correct: thinking}' />
@@ -72,10 +72,10 @@
               this.b = underOneHundred()
               break
             case '-':
-              var a = underOneHundred()
-              var b = underOneHundred()
-              this.a = Math.max(a, b)
-              this.b = Math.min(a, b)
+              var x = underOneHundred()
+              var y = underOneHundred()
+              this.a = Math.max(x, y)
+              this.b = Math.min(x, y)
               break
           }
 

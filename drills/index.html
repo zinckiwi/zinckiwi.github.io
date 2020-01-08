@@ -6,26 +6,47 @@
   <script src='https://unpkg.com/vue'></script>
 
   <style>
+    html,body {
+      text-size-adjust: none;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      -ms-text-size-adjust: none;
+    }
+
     body { font-family: 'Days One', cursive; line-height: 1; }
     input { font-family: 'Days One', cursive; }
 
-    #app { display: flex; height: 100vh; flex-direction: column; justify-content: center; align-items: center; }
+    #app { display: flex; flex-direction: column; justify-content: center; align-items: center; padding-top: 5vh; }
 
-    .question { font-size: 8rem; color: #69c; }
-    input { font-size: 8rem; color: #999; width: 3em; text-align: center; border: none; border-bottom: 5px solid #ccc; outline: none; line-height: 1; padding: 0 0 0.1em 0; }
+    h1 { color: #000; font-size: 30px; letter-spacing: 10px; text-transform: uppercase; padding: 0; margin: 0; padding-bottom: 2vh; }
+    .operators { display: flex; flex-direction: row; justify-content: center; align-items: center; padding-bottom: 3vh; }
+    .operators span { cursor: pointer; color: #ccc; font-size: 60px; margin: 0 40px; }
+    .operators span.active { color: #69c; font-size: 60px; margin: 0 40px; }
+    .question { font-size: calc(160px + 1vw); color: #69c; }
+    .question-operator { margin: 0 -32px; }
+    input { font-size: calc(160px + 1vw); color: #999; width: 3em; text-align: center; border: none; border-bottom: 5px solid #ccc; outline: none; line-height: 1; padding: 0 0 12px 0; }
+    input:disabled { background: transparent; border-color: #ccc; }
     input.correct { color: #390; }
   </style>
 </head>
 <body>
   <div id='app'>
-    <div class='question'>{{a}} × {{b}}</div>
-    <input type='text' autofocus ref='answer' v-model.trim='answer' @input='check' v-bind:disabled='thinking' v-bind:class='{correct: thinking}' @keypress='isNumber($event)' />
+    <h1>Drills</h1>
+    <div class='operators'>
+      <span v-bind:class='{active: this.operator == "×"}' @click='setOperator("×")'>×</span>
+      <span v-bind:class='{active: this.operator == "÷"}' @click='setOperator("÷")' style='font-size: 45px;'>÷</span>
+      <span v-bind:class='{active: this.operator == "+"}' @click='setOperator("+")'>+</span>
+      <span v-bind:class='{active: this.operator == "-"}' @click='setOperator("-")'>-</span>
+    </div>
+    <div class='question'>{{a}} <span class='question-operator'>{{ operator }}</span> {{b}}</div>
+    <input type='text' autofocus maxlength='3' inputmode='numeric' pattern='[0-9]*' ref='answer' v-model.trim='answer' @input='check' v-bind:disabled='thinking' v-bind:class='{correct: thinking}' />
   </div>
 
   <script>
-    var TIMES_TABLES_NUMBERS = [1,2,3,4,5,6,7,8,9,10,11,12]
+    var TIMES_TABLES_NUMBERS = [2,3,4,5,6,7,8,9,10,11,12]
 
     function rand(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+    function underOneHundred() { return Math.floor(Math.random() * 99) + 1; }
 
     var app = new Vue({
       el: '#app',
@@ -34,22 +55,59 @@
         b: rand(TIMES_TABLES_NUMBERS),
         answer: '',
         thinking: false,
+        operator: '×',
       },
       methods: {
-        check: function() {
-          if ((this.a * this.b).toString() === this.answer) {
-            this.thinking = true
-            setTimeout((function() {
+        setNewQuestion() {
+          switch(this.operator) {
+            case '×':
               this.a = rand(TIMES_TABLES_NUMBERS)
               this.b = rand(TIMES_TABLES_NUMBERS)
-              this.answer = ''
-              this.thinking = false
-
-              setTimeout((function() {
-                this.$refs.answer.focus()
-              }).bind(this))
-            }).bind(this), 750)
+              break
+            case '÷':
+              this.b = rand(TIMES_TABLES_NUMBERS)
+              this.a = rand(TIMES_TABLES_NUMBERS) * this.b
+              break
+            case '+':
+              this.a = underOneHundred()
+              this.b = underOneHundred()
+              break
+            case '-':
+              var a = underOneHundred()
+              var b = underOneHundred()
+              this.a = Math.max(a, b)
+              this.b = Math.min(a, b)
+              break
           }
+
+          this.answer = ''
+          this.thinking = false
+          setTimeout((function() {
+            this.$refs.answer.focus()
+          }).bind(this))
+        },
+        setOperator(operator) {
+          this.operator = operator
+          this.setNewQuestion()
+        },
+        check: function() {
+          switch(this.operator) {
+            case '×':
+              if ((this.a * this.b).toString() !== this.answer) return
+              break
+            case '÷':
+              if (this.b > 0 && (this.a / this.b).toString() !== this.answer) return
+              break
+            case '+':
+              if ((this.a + this.b).toString() !== this.answer) return
+              break
+            case '-':
+              if ((this.a - this.b).toString() !== this.answer) return
+              break
+          }
+
+          this.thinking = true
+          setTimeout(this.setNewQuestion, 750)
         }
       }
     })

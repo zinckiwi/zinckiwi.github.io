@@ -8,29 +8,40 @@
 
   <style>
     html,body {
-      padding: 0;
+      padding: 16px;
       margin: 0;
     }
 
     body { font-family: 'Days One', cursive; line-height: 1; }
     input { font-family: 'Days One', cursive; }
 
-    #app { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 5vh; }
+    #app { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; max-width: 720px; margin: 0 auto; }
 
-    h1 { color: #000; font-size: 30px; text-transform: uppercase; padding: 0; margin: 0; padding-bottom: 2vh; }
+    .header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 2vh; }
+    h1 { flex-grow: 1; color: #000; font-size: 30px; text-transform: uppercase; padding: 0; margin: 0; }
+    .count, .time, .bullet { flex: 0; color: #999; cursor: pointer; font-size: 30px; white-space: nowrap; }
+    .count .x { visibility: hidden; }
+    .count:hover .x { visibility: visible; }
+    .bullet { padding: 0 14px 0 16px; }
+    .time { min-width: 80px; }
     .operators { display: flex; flex-direction: row; justify-content: center; align-items: center; padding-bottom: 3vh; }
     .operators span { cursor: pointer; color: #ccc; font-size: 40px; margin: 0 16px; }
     .operators span.active { color: #69c; }
-    .question { font-size: calc(80px + 2vw); color: #69c; }
+    .question { font-size: calc(40px + 4vw); color: #69c; }
     .question-operator { margin: 0 -12px; }
-    input { font-size: calc(80px + 2vw); color: #999; width: 3em; text-align: center; border: none; border-bottom: 5px solid #ccc; outline: none; line-height: 1; padding: 0 0 12px 0; }
+    input { font-size: calc(40px + 4vw); color: #999; width: 3em; text-align: center; border: none; border-bottom: 5px solid #ccc; outline: none; line-height: 1; padding: 0 0 12px 0; }
     input:disabled { background: transparent; border-color: #ccc; }
     input.correct { color: #390; }
   </style>
 </head>
 <body>
   <div id='app'>
-    <h1>Drills</h1>
+    <div class='header'>
+      <h1>Drills</h1>
+      <div class='count' @click='reset'><span class='x'>×</span> {{count}}</div>
+      <div class='bullet'>•</div>
+      <div class='time'>{{time}}</div>
+    </div>
     <div class='operators'>
       <span v-bind:class='{active: operator == "×"}' @click='setOperator("×")'>×</span>
       <span v-bind:class='{active: operator == "÷"}' @click='setOperator("÷")' style='font-size: 30px;'>÷</span>
@@ -38,25 +49,45 @@
       <span v-bind:class='{active: operator == "-"}' @click='setOperator("-")'>-</span>
     </div>
     <div class='question'>{{a}} <span class='question-operator'>{{ operator }}</span> {{b}}</div>
-    <input type='text' autofocus maxlength='3' inputmode='numeric' pattern='[0-9]*' ref='answer' v-model.trim='answer' @input='check' v-bind:disabled='thinking' v-bind:class='{correct: thinking}' />
+    <input type='text' maxlength='3' inputmode='numeric' pattern='[0-9]*' ref='answer' v-model.trim='answer' @input='check' v-bind:disabled='thinking' v-bind:class='{correct: thinking}' />
   </div>
 
   <script>
     var TIMES_TABLES_NUMBERS = [2,3,4,5,6,7,8,9,10,11,12]
 
-    function rand(arr) { return arr[Math.floor(Math.random() * arr.length)] }
-    function underOneHundred() { return Math.floor(Math.random() * 99) + 1; }
-
     var app = new Vue({
       el: '#app',
       data: {
-        a: rand(TIMES_TABLES_NUMBERS),
-        b: rand(TIMES_TABLES_NUMBERS),
+        a: null,
+        b: null,
         answer: '',
         thinking: false,
-        operator: '×',
+        operator: null,
+        count: null,
+        started: null,
+        elapsed: 0,
+      },
+      created: function() {
+        this.operator = getPref('operator')
+        this.count = 0,
+        this.setNewQuestion()
+        this.started = new Date()
+        this.tick()
+      },
+      computed: {
+        time: function() {
+          var seconds = Math.floor(this.elapsed)
+          var minutes = Math.floor(seconds / 60)
+          seconds = seconds - (minutes * 60)
+          return minutes.toString() + ':' + ('0' + seconds).slice(-2)
+        },
       },
       methods: {
+        tick() {
+          var seconds = (new Date() - this.started) / 1000
+          if (seconds > this.elapsed) this.elapsed = seconds
+          requestAnimationFrame(this.tick)
+        },
         setNewQuestion() {
           switch(this.operator) {
             case '×':
@@ -81,13 +112,15 @@
 
           this.answer = ''
           this.thinking = false
-          setTimeout((function() {
+          this.$nextTick((function() {
+            console.log(this.$refs.answer)
             this.$refs.answer.focus()
           }).bind(this))
         },
         setOperator(operator) {
           this.operator = operator
           this.setNewQuestion()
+          setPref('operator', operator)
         },
         check: function() {
           switch(this.operator) {
@@ -106,10 +139,40 @@
           }
 
           this.thinking = true
+          this.count += 1
           setTimeout(this.setNewQuestion, 750)
-        }
-      }
+        },
+        reset: function() {
+          this.count = 0
+          this.started = new Date()
+          this.setNewQuestion()
+        },
+      },
     })
+
+    function rand(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+    function underOneHundred() { return Math.floor(Math.random() * 99) + 1; }
+    function getPrefs() {
+      var rawPrefs = localStorage.getItem('prefs')
+      if (rawPrefs) return JSON.parse(rawPrefs)
+
+      setPrefs({
+        version: 1,
+        operator: '×',
+      })
+      return getPrefs()
+    }
+    function setPrefs(prefs) {
+      localStorage.setItem('prefs', JSON.stringify(prefs))
+    }
+    function getPref(k) {
+      return getPrefs()[k]
+    }
+    function setPref(k, v) {
+      var prefs = getPrefs()
+      prefs[k] = v
+      setPrefs(prefs)
+    }
   </script>
 </body>
 </html>

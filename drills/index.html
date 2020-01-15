@@ -3,6 +3,7 @@
 <head>
   <title>Basic Maths Drills</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.gstatic.com/s/daysone/v9/mem9YaCnxnKRiYZOCIYScrg0V8Bs.woff2" rel="preload" as="font" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css?family=Days+One&display=swap" rel="stylesheet">
   <script src='https://unpkg.com/vue'></script>
 
@@ -113,7 +114,6 @@
           this.answer = ''
           this.thinking = false
           this.$nextTick((function() {
-            console.log(this.$refs.answer)
             this.$refs.answer.focus()
           }).bind(this))
         },
